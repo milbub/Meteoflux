@@ -21,5 +21,4 @@ dbf_path = 'C:/WinMeteo/Data/meteo.DBF'
 local_zone = tz.gettz('Europe/Prague')
 
 # WinMeteo settings
-winmeteo_process = 'WinMeteo.exe'
 winmeteo_path = 'C:/WinMeteo/WinMeteo.exe'

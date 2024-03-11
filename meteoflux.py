@@ -1,6 +1,7 @@
 import subprocess
 import time
 from datetime import datetime
+from pathlib import Path
 
 import psutil
 
@@ -115,15 +116,16 @@ def read_new_rows_from_dbf(last_timestamp) -> list[dict]:
     return new_rows
 
 
-def start_winmeteo_if_not_running(process_name, process_path) -> None:
+def start_winmeteo_if_not_running(process_name, process_path, working_dir) -> None:
     """
     Starts WinMeteo process if it is not running
     :param process_name: name of the executable
     :param process_path: path to the executable
+    :param working_dir: working directory for the process
     :return: None
     """
     if not any(proc.name() == process_name for proc in psutil.process_iter()):
-        subprocess.Popen(process_path)
+        subprocess.Popen(process_path, cwd=working_dir)
         print(f"Started {process_name}.")
 
 
@@ -162,7 +164,11 @@ def kill_winmeteo(process_name, kill_time_limit) -> None:
 
 
 def main():
-    start_winmeteo_if_not_running(winmeteo_process, winmeteo_path)
+    winmeteo_path_obj = Path(winmeteo_path)
+    winmeteo_dir = winmeteo_path_obj.parent
+    winmeteo_process = winmeteo_path_obj.name
+
+    start_winmeteo_if_not_running(winmeteo_process, winmeteo_path, winmeteo_dir)
 
     connected = False
     last_timestamp = None
@@ -194,6 +200,7 @@ def main():
     while True:
         try:
             iterations += 1
+            print("-" * 80)
             print(f"STATS: Iteration: {iterations}, restarts: {restarts}, last (re)start: {last_restart}")
 
             new_rows = read_new_rows_from_dbf(last_timestamp)
@@ -214,7 +221,7 @@ def main():
             if zeros >= max_zeros:
                 print(f"Maximum attempts count reached. Restarting WinMeteo...")
                 kill_winmeteo(winmeteo_process, wait_for_kill)
-                start_winmeteo_if_not_running(winmeteo_process, winmeteo_path)
+                start_winmeteo_if_not_running(winmeteo_process, winmeteo_path, winmeteo_dir)
                 restarts += 1
                 last_restart = datetime.now()
                 zeros = 0
