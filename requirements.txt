@@ -1,0 +1,4 @@
+dbfread
+influxdb_client
+python-dateutil
+psutil
