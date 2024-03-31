@@ -1,6 +1,6 @@
 import subprocess
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import psutil
@@ -14,6 +14,20 @@ from meteoconfig import *
 
 # InfluxDB timezone is always UTC
 utc_zone = tz.tzutc()
+
+
+def get_patched_dst_tz(base_timezone: tz.tzfile) -> tz.tzoffset:
+    """
+    Get local timezone with patched DST offset for bugged WinMeteo, which doesn't know DST at all
+    """
+    date_time = datetime.now(base_timezone)
+
+    if date_time.dst() != timedelta(0):
+        new_offset = base_timezone.utcoffset(date_time) - timedelta(hours=1)
+        adjusted_timezone = tz.tzoffset('+' + str(new_offset.seconds // 3600) + 'h', new_offset)
+        return adjusted_timezone
+    else:
+        return base_timezone
 
 
 def get_last_timestamp(influx_client) -> datetime | None:
@@ -93,7 +107,8 @@ def write_to_influxdb(influx_write_api, data) -> None:
                     continue
 
             point.field(name, float(value))
-        timestamp = datetime.strptime(f"{row['DAT']} {row['CAS']}", '%Y-%m-%d %H:%M').replace(tzinfo=local_zone)
+        timestamp = datetime.strptime(f"{row['DAT']} {row['CAS']}", '%Y-%m-%d %H:%M')\
+            .replace(tzinfo=get_patched_dst_tz(local_zone))
         point.time(timestamp.astimezone(utc_zone), WritePrecision.NS)
         points.append(point)
 
@@ -110,7 +125,8 @@ def read_new_rows_from_dbf(last_timestamp) -> list[dict]:
     table = DBF(dbf_path, load=True)
     new_rows = []
     for record in table:
-        record_time = datetime.strptime(f"{record['DAT']} {record['CAS']}", '%Y-%m-%d %H:%M').replace(tzinfo=local_zone)
+        record_time = datetime.strptime(f"{record['DAT']} {record['CAS']}", '%Y-%m-%d %H:%M')\
+            .replace(tzinfo=get_patched_dst_tz(local_zone))
         if record_time > last_timestamp:
             new_rows.append(record)
     return new_rows
@@ -209,7 +225,8 @@ def main():
             if new_rows:
                 write_to_influxdb(write_api, new_rows)
                 last_timestamp = max(
-                    datetime.strptime(f"{row['DAT']} {row['CAS']}", '%Y-%m-%d %H:%M').replace(tzinfo=local_zone)
+                    datetime.strptime(f"{row['DAT']} {row['CAS']}", '%Y-%m-%d %H:%M')
+                    .replace(tzinfo=get_patched_dst_tz(local_zone))
                     for row in new_rows
                 )
                 print(f"Written {len(new_rows)} new rows to InfluxDB.")
