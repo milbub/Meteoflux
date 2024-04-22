@@ -65,9 +65,8 @@ def write_to_influxdb(influx_write_api, data) -> None:
             match key:
                 case "DAT" | "CAS" | "EX" | "RESETCNT" | "RESETTYP" | "_NullFlags":
                     continue  # system columns
-                case "PWD_ERR" | "PWD_V01" | "PWD_V10" | "PWD_P01" | "PWD_P15" | \
-                     "PWD_WI" | "PWD_WS" | "PWD_SS" | "PWD_T" | "PWD_BL":
-                    continue  # currently not used columns
+                case "PWD_BL":
+                    continue  # currently not used column
                 case "VLVZD":
                     name = "humi"
                 case "TEP2M":
@@ -102,6 +101,27 @@ def write_to_influxdb(influx_write_api, data) -> None:
                     name = "volt"
                 case "NABAT_I":
                     name = "volt_min"
+                case "PWD_V01":
+                    name = "pwd_visibility"
+                case "PWD_V10":
+                    name = "pwd_visibility_10m"
+                case "PWD_P01":
+                    name = "pwd_pw_code"
+                case "PWD_P15":
+                    name = "pwd_pw_code_15m"
+                case "PWD_WI":
+                    name = "pwd_water_intensity"
+                    value = value / 10
+                case "PWD_WS":
+                    name = "pwd_water_sum"
+                    value = value / 10
+                case "PWD_SS":
+                    name = "pwd_snow_sum"
+                case "PWD_T":
+                    name = "pwd_temp"
+                    value = value / 100
+                case "PWD_ERR":
+                    name = "pwd_error"
                 case _:
                     print(f"ERROR: Unknown column: {key}")
                     continue
