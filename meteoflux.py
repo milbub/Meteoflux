@@ -102,24 +102,40 @@ def write_to_influxdb(influx_write_api, data) -> None:
                 case "NABAT_I":
                     name = "volt_min"
                 case "PWD_V01":
+                    if float(value) < 0:
+                        continue
                     name = "pwd_visibility"
                 case "PWD_V10":
+                    if float(value) < 0:
+                        continue
                     name = "pwd_visibility_10m"
                 case "PWD_P01":
+                    if float(value) < 0:
+                        continue
                     name = "pwd_pw_code"
                 case "PWD_P15":
+                    if float(value) < 0:
+                        continue
                     name = "pwd_pw_code_15m"
                 case "PWD_WI":
+                    if float(value) < 0:
+                        continue
                     name = "pwd_water_intensity"
-                    value = value / 10
+                    value = value / 100
                 case "PWD_WS":
+                    if float(value) < 0:
+                        continue
                     name = "pwd_water_sum"
-                    value = value / 10
+                    value = value / 100
                 case "PWD_SS":
+                    if float(value) < 0:
+                        continue
                     name = "pwd_snow_sum"
                 case "PWD_T":
                     name = "pwd_temp"
                     value = value / 100
+                    if (value > 100) or (-9.9 > value > -10):
+                        continue
                 case "PWD_ERR":
                     name = "pwd_error"
                 case _:
